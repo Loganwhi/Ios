@@ -1,0 +1,124 @@
+// Importieren Sie die erforderlichen Flutter-Pakete
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+void main() {
+  runApp(MeineWetterApp());
+}
+
+class MeineWetterApp extends StatefulWidget {
+  @override
+  _MeineWetterAppState createState() => _MeineWetterAppState();
+}
+
+class _MeineWetterAppState extends State<MeineWetterApp> {
+  // API-Schlüssel für die OpenWeatherMap-API
+  final String apiKey = 'Ihr_OpenWeatherMap_API-Schlüssel';
+
+  // Standardstadt für die Wetteranfrage
+  String stadt = 'Berlin';
+
+  // Funktion zum Abrufen von Wetterdaten von der OpenWeatherMap-API
+  Future<Map<String, dynamic>> fetchWetterDaten(String stadt) async {
+    final response = await http.get(
+      'https://api.openweathermap.org/data/2.5/weather?q=$stadt&appid=$apiKey&units=metric',
+    );
+
+    if (response.statusCode == 200) {
+      // Konvertieren Sie die JSON-Antwort in ein Dart-Map-Objekt
+      return json.decode(response.body);
+    } else {
+      // Bei einem Fehler geben Sie eine leere Map zurück
+      return {};
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text('Meine Wetter App'),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              TextField(
+                onChanged: (text) {
+                  setState(() {
+                    stadt = text;
+                  });
+                },
+                decoration: InputDecoration(
+                  labelText: 'Stadt eingeben',
+                ),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  // Rufen Sie die Wetterdaten ab, wenn der Benutzer auf den Button klickt
+                  Map<String, dynamic> wetterDaten = await fetchWetterDaten(stadt);
+
+                  // Überprüfen Sie, ob die Wetterdaten gültig sind
+                  if (wetterDaten.isNotEmpty) {
+                    // Extrahieren Sie die relevanten Wetterinformationen
+                    String temperatur = wetterDaten['main']['temp'].toString();
+                    String wetterBeschreibung = wetterDaten['weather'][0]['description'];
+
+                    // Zeigen Sie die Wetterinformationen auf dem Bildschirm an
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: Text('Wetter in $stadt'),
+                          content: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Temperatur: $temperatur °C'),
+                              Text('Beschreibung: $wetterBeschreibung'),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              child: Text('OK'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  } else {
+                    // Zeigen Sie eine Fehlermeldung an, wenn die Wetterdaten nicht abgerufen werden können
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: Text('Fehler'),
+                          content: Text('Fehler beim Abrufen der Wetterdaten für $stadt.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              child: Text('OK'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  }
+                },
+                child: Text('Wetter abrufen'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
